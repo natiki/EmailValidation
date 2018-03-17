@@ -1,9 +1,9 @@
 //
 // Test.cs
 //
-// Author: Jeffrey Stedfast <jeff@xamarin.com>
+// Author: Jeffrey Stedfast <jestedfa@microsoft.com>
 //
-// Copyright (c) 2013 Xamarin Inc.
+// Copyright (c) 2013-2017 Jeffrey Stedfast
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@
 using System;
 using NUnit.Framework;
 using EmailValidation;
+using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace UnitTests
 {
@@ -119,10 +121,10 @@ namespace UnitTests
 			"<>@[]`|@even-more-invalid-characters-in-local.org",
 			"@missing-local.org",
 			"IP-and-port@127.0.0.1:25",
-			//"another-invalid-ip@127.0.0.256",
+			"another-invalid-ip@127.0.0.256",
 			"invalid",
 			"invalid-characters-in-sld@! \"#$%(),/;<>_[]`|.org",
-			//"invalid-ip@127.0.0.1.26",
+			"invalid-ip@127.0.0.1.26",
 			"local-ends-with-dot.@sld.com",
 			"missing-at-sign.net",
 			"missing-sld@.com",
@@ -133,7 +135,7 @@ namespace UnitTests
 			"the-local-part-is-invalid-if-it-is-longer-than-sixty-four-characters@sld.net",
 			"the-total-length@of-an-entire-address.cannot-be-longer-than-two-hundred-and-fifty-four-characters.and-this-address-is-255-characters-exactly.so-it-should-be-invalid.and-im-going-to-add-some-more-words-here.to-increase-the-lenght-blah-blah-blah-blah-bl.org",
 			"two..consecutive-dots@sld.com",
-			//"unbracketed-IP@127.0.0.1",
+			"unbracketed-IP@127.0.0.1",
 
 			// examples of real (invalid) input from real users.
 			"No longer available.",
@@ -166,6 +168,68 @@ namespace UnitTests
 		{
 			for (int i = 0; i < ValidInternationalAddresses.Length; i++)
 				Assert.IsTrue (EmailValidator.Validate (ValidInternationalAddresses[i], true, true), "Valid International Address #{0}", i);
+		}
+
+		[Test]
+		public void TestThrowsExceptionIfNull ()
+		{
+			Assert.Throws<ArgumentNullException> (() => EmailValidator.Validate (null, true, true), "Null Address");
+		}
+
+		[Test]
+		public void TestValidationAttributeValidAddresses ()
+		{
+			EmailValidationTarget target = new EmailValidationTarget ();
+
+			foreach (var email in ValidAddresses) {
+				target.Email = email;
+
+				Assert.IsTrue (AreAttributesValid (target), "Valid Address {0}", email);
+			}
+		}
+
+		[Test]
+		public void TestValidationAttributeInvalidAddresses ()
+		{
+			EmailValidationTarget target = new EmailValidationTarget ();
+
+			foreach (var email in InvalidAddresses) {
+				target.Email = email;
+
+				Assert.IsFalse (AreAttributesValid (target), "Invalid Address {0}", email);
+			}
+		}
+
+		[Test]
+		public void TestValidationAttributeValidInternationalAddresses ()
+		{
+			var target = new InternationalEmailValidationTarget ();
+
+			foreach (var email in ValidInternationalAddresses) {
+				target.Email = email;
+
+				Assert.IsTrue (AreAttributesValid (target), "Valid International Address {0}", email);
+			}
+		}
+
+		bool AreAttributesValid (object target)
+		{
+			var context = new ValidationContext (target, null, null);
+			var results = new List<ValidationResult> ();
+
+			return Validator.TryValidateObject (target, context, results, true);
+		}
+
+		class EmailValidationTarget
+		{
+			[Email (true)]
+			public string Email { get; set; }
+		}
+
+		class InternationalEmailValidationTarget
+		{
+			[Email (true, true)]
+			public string Email { get; set; }
 		}
 	}
 }

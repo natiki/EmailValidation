@@ -1,5 +1,7 @@
 EmailValidation.userprefs
 EmailValidation.suo
+packages
 bin
 obj
+*.project.lock.json
 *~
